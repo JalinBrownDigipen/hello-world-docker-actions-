@@ -1,0 +1,40 @@
+name: Build and Push Docker Image for helloworldwebserver
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    
+    - name: Set up .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore HelloWorldWebServer/HelloWorldWebServer.sln
+  
+    - name: Build the project
+      run: dotnet build HelloWorldWebServer/HelloWorldWebServer.sln --configuration Release --no-restore
+  
+    - name: Publish the project
+      run: dotnet publish HelloWorldWebServer/HelloWorldWebServer.csproj -c Release
+  
+    - name: Build Docker Image
+      run: docker build -t cs399jalinbrowncontainer.azurecr.io/helloworldwebserver:${{ github.sha }} HelloWorldWebServer
+
+    - name: Log in to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: cs399jalinbrowncontainer.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Push Docker image
+      run: docker push cs399jalinbrowncontainer.azurecr.io/helloworldwebserver:${{ github.sha }}
